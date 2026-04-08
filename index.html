@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MedAI | Intelligent Healthcare Platform</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "surface":          "#0a0d14",
+            "surface-container":"#111520",
+            "surface-card":     "#161b27",
+            "surface-high":     "#1e2436",
+            "outline-dim":      "#2a3148",
+            "on-surface":       "#e8edf8",
+            "on-surface-dim":   "#8a93b0",
+            "primary":          "#4fffb0",
+            "primary-dim":      "#1fd988",
+            "secondary":        "#38bdf8",
+            "accent":           "#a78bfa",
+            "danger":           "#f87171",
+            "warn":             "#fbbf24",
+          },
+          fontFamily: {
+            headline: ["Syne", "sans-serif"],
+            body:     ["DM Sans", "sans-serif"],
+          },
+          keyframes: {
+            fadeUp:   { "0%":{ opacity:0, transform:"translateY(32px)" }, "100%":{ opacity:1, transform:"translateY(0)" } },
+            fadeIn:   { "0%":{ opacity:0 }, "100%":{ opacity:1 } },
+            pulse:    { "0%,100%":{ opacity:1 }, "50%":{ opacity:0.35 } },
+            orb:      { "0%,100%":{ transform:"translate(0,0) scale(1)" }, "33%":{ transform:"translate(40px,-25px) scale(1.06)" }, "66%":{ transform:"translate(-30px,20px) scale(0.96)" } },
+            scanline: { "0%":{ transform:"translateY(-100%)" }, "100%":{ transform:"translateY(100vh)" } },
+            ticker:   { "0%":{ transform:"translateX(0)" }, "100%":{ transform:"translateX(-50%)" } },
+            borderGlow:{ "0%,100%":{ "box-shadow":"0 0 0 1px rgba(79,255,176,0.15)" }, "50%":{ "box-shadow":"0 0 0 1px rgba(79,255,176,0.5)" } },
+          },
+          animation: {
+            "fade-up":    "fadeUp 0.7s ease forwards",
+            "fade-in":    "fadeIn 0.6s ease forwards",
+            "pulse-slow": "pulse 3s ease-in-out infinite",
+            "orb":        "orb 14s ease-in-out infinite",
+            "scanline":   "scanline 6s linear infinite",
+            "ticker":     "ticker 22s linear infinite",
+            "border-glow":"borderGlow 2.5s ease-in-out infinite",
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block; line-height: 1;
+    }
+    body { min-height: 100dvh; cursor: none; background: #0a0d14; }
+
+    /* Cursor */
+    #cursor {
+      position:fixed; top:0; left:0; width:10px; height:10px;
+      background:#4fffb0; border-radius:50%; pointer-events:none;
+      z-index:9999; transform:translate(-50%,-50%);
+      transition: width .18s, height .18s, background .2s;
+      mix-blend-mode: screen;
+    }
+    #cursor-ring {
+      position:fixed; top:0; left:0; width:34px; height:34px;
+      border:1.5px solid rgba(79,255,176,0.35); border-radius:50%;
+      pointer-events:none; z-index:9998; transform:translate(-50%,-50%);
+      transition: width .32s ease, height .32s ease, border-color .2s;
+    }
+
+    /* Glass */
+    .glass { background:rgba(22,27,39,0.55); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid rgba(42,49,72,0.5); }
+
+    /* Glow border hover */
+    .glow-border { border:1px solid rgba(42,49,72,0.5); transition:border-color .3s, box-shadow .3s; }
+    .glow-border:hover { border-color:rgba(79,255,176,0.35); box-shadow:0 0 18px rgba(79,255,176,0.08); }
+
+    /* Reveal */
+    .reveal { opacity:0; transform:translateY(26px); transition:opacity .7s cubic-bezier(.22,1,.36,1), transform .7s cubic-bezier(.22,1,.36,1); }
+    .reveal.visible { opacity:1; transform:none; }
+
+    /* Hero stagger */
+    .h-badge { opacity:0; animation: fadeUp .55s .1s ease forwards; }
+    .h-h1    { opacity:0; animation: fadeUp .65s .22s ease forwards; }
+    .h-sub   { opacity:0; animation: fadeUp .65s .38s ease forwards; }
+    .h-cta   { opacity:0; animation: fadeUp .65s .52s ease forwards; }
+    .h-visual{ opacity:0; animation: fadeIn  1s .65s ease forwards; }
+
+    /* Ticker */
+    .ticker-wrap { overflow:hidden; }
+    .ticker-track { display:flex; gap:3rem; white-space:nowrap; animation:ticker 22s linear infinite; }
+
+    /* Mobile nav */
+    #mobile-menu { max-height:0; overflow:hidden; transition:max-height .4s ease, opacity .3s; opacity:0; }
+    #mobile-menu.open { max-height:420px; opacity:1; }
+
+    /* Grid dots bg */
+    .dot-grid { background-image: radial-gradient(circle, rgba(79,255,176,0.08) 1px, transparent 1px); background-size:28px 28px; }
+
+    /* Toast */
+    #toast {
+      position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(90px);
+      background:#111520; border:1px solid rgba(79,255,176,0.3); color:#e8edf8;
+      padding:12px 24px; border-radius:999px; font-family:'DM Sans',sans-serif;
+      font-size:.85rem; display:flex; align-items:center; gap:10px;
+      z-index:1000; transition:transform .4s cubic-bezier(.34,1.56,.64,1), opacity .4s;
+      opacity:0;
+    }
+    #toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
+
+    /* Stat numbers */
+    .stat-num { font-family:'Syne',sans-serif; }
+
+    /* Chat widget */
+    #chat-widget { transition:transform .4s cubic-bezier(.34,1.56,.64,1), opacity .3s; transform:scale(0.8) translateY(20px); opacity:0; pointer-events:none; }
+    #chat-widget.open { transform:scale(1) translateY(0); opacity:1; pointer-events:all; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width:6px; } 
+    ::-webkit-scrollbar-track { background:#0a0d14; }
+    ::-webkit-scrollbar-thumb { background:#2a3148; border-radius:3px; }
+    ::-webkit-scrollbar-thumb:hover { background:#4fffb0; }
+
+    /* ECG line animation */
+    .ecg-line {
+      stroke-dasharray: 800;
+      stroke-dashoffset: 800;
+      animation: ecgDraw 3s ease forwards infinite;
+    }
+    @keyframes ecgDraw {
+      0%  { stroke-dashoffset:800; opacity:0.4; }
+      50% { stroke-dashoffset:0;   opacity:1; }
+      100%{ stroke-dashoffset:-800; opacity:0.4; }
+    }
+
+    /* pill badge */
+    .pill { display:inline-flex; align-items:center; gap:6px; padding:4px 12px; border-radius:999px; font-size:.75rem; font-family:'DM Sans',sans-serif; font-weight:500; border:1px solid; }
+  </style>
+</head>
+<body class="bg-surface text-on-surface font-body">
+
+  <!-- Custom Cursor -->
+  <div id="cursor"></div>
+  <div id="cursor-ring"></div>
+
+  <!-- ═══════════════════════════════════
+       NAVBAR
+  ═══════════════════════════════════ -->
+  <nav id="navbar" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300">
+    <div class="max-w-7xl mx-auto px-6 md:px-8 py-4 flex items-center justify-between">
+      <!-- Logo -->
+      <a href="#" class="flex items-center gap-2.5 group">
+        <div class="w-8 h-8 rounded-lg bg-primary/10 border border-primary/30 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+          <span class="material-symbols-outlined text-primary text-[18px]" style="font-variation-settings:'FILL' 1">ecg_heart</span>
+        </div>
+        <span class="font-headline font-bold text-lg tracking-tight text-on-surface">Med<span class="text-primary">AI</span></span>
+      </a>
+
+      <!-- Desktop nav -->
+      <div class="hidden md:flex items-center gap-8">
+        <a href="#features"   class="text-on-surface-dim hover:text-primary text-sm transition-colors duration-200">Features</a>
+        <a href="#how-it-works" class="text-on-surface-dim hover:text-primary text-sm transition-colors duration-200">How It Works</a>
+        <a href="#dashboard"  class="text-on-surface-dim hover:text-primary text-sm transition-colors duration-200">Dashboard</a>
+        <a href="#stats"      class="text-on-surface-dim hover:text-primary text-sm transition-colors duration-200">Impact</a>
+        <a href="#pricing"    class="text-on-surface-dim hover:text-primary text-sm transition-colors duration-200">Pricing</a>
+      </div>
+
+      <div class="hidden md:flex items-center gap-3">
+        <button class="text-sm text-on-surface-dim hover:text-on-surface transition-colors px-4 py-2">Sign in</button>
+        <button class="text-sm font-medium bg-primary text-surface px-5 py-2.5 rounded-lg hover:bg-primary-dim transition-colors">Get Started</button>
+      </div>
+
+      <!-- Mobile hamburger -->
+      <button id="menu-btn" aria-label="Toggle menu" aria-expanded="false" class="md:hidden p-2">
+        <span id="menu-icon" class="material-symbols-outlined text-on-surface-dim">menu</span>
+      </button>
+    </div>
+
+    <!-- Mobile menu -->
+    <div id="mobile-menu" class="md:hidden glass border-t border-outline-dim/40">
+      <div class="max-w-7xl mx-auto px-6 py-4 flex flex-col gap-4">
+        <a href="#features"    class="text-on-surface-dim hover:text-primary text-sm py-2 transition-colors">Features</a>
+        <a href="#how-it-works" class="text-on-surface-dim hover:text-primary text-sm py-2 transition-colors">How It Works</a>
+        <a href="#dashboard"   class="text-on-surface-dim hover:text-primary text-sm py-2 transition-colors">Dashboard</a>
+        <a href="#stats"       class="text-on-surface-dim hover:text-primary text-sm py-2 transition-colors">Impact</a>
+        <a href="#pricing"     class="text-on-surface-dim hover:text-primary text-sm py-2 transition-colors">Pricing</a>
+        <div class="flex gap-3 pt-2 border-t border-outline-dim/40">
+          <button class="flex-1 text-sm text-center py-2.5 border border-outline-dim rounded-lg text-on-surface-dim hover:border-primary/40 hover:text-on-surface transition-all">Sign in</button>
+          <button class="flex-1 text-sm text-center py-2.5 bg-primary text-surface rounded-lg font-medium hover:bg-primary-dim transition-colors">Get Started</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ═══════════════════════════════════
+       HERO
+  ═══════════════════════════════════ -->
+  <section id="hero" class="relative min-h-screen flex items-center pt-20 overflow-hidden dot-grid">
+
+    <!-- Ambient orbs -->
+    <div class="absolute top-1/4 left-1/4 w-[500px] h-[500px] rounded-full bg-primary/4 blur-[120px] animate-orb pointer-events-none"></div>
+    <div class="absolute bottom-1/3 right-1/4 w-[400px] h-[400px] rounded-full bg-secondary/5 blur-[100px] animate-orb pointer-events-none" style="animation-delay:-5s"></div>
+    <div class="absolute top-1/2 right-1/3 w-[300px] h-[300px] rounded-full bg-accent/4 blur-[80px] animate-orb pointer-events-none" style="animation-delay:-9s"></div>
+
+    <div class="max-w-7xl mx-auto px-6 md:px-8 w-full grid lg:grid-cols-2 gap-16 items-center py-20">
+      <!-- Text -->
+      <div>
+        <div class="h-badge inline-flex items-center gap-2 pill border-primary/25 text-primary bg-primary/5 mb-6">
+          <span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse-slow"></span>
+          AI-Powered Healthcare Platform
+        </div>
+        <h1 class="h-h1 font-headline text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.06] tracking-tight mb-6">
+          Smarter Care.<br/>
+          <span class="text-primary">Faster Diagnosis.</span><br/>
+          <span class="text-on-surface-dim">Better Outcomes.</span>
+        </h1>
+        <p class="h-sub text-on-surface-dim text-lg leading-relaxed max-w-lg mb-10">
+          MedAI integrates clinical-grade artificial intelligence into every step of the patient journey — from symptom assessment to treatment planning and real-time monitoring.
+        </p>
+        <div class="h-cta flex flex-wrap gap-4 items-center">
+          <button onclick="document.getElementById('demo').scrollIntoView({behavior:'smooth'})" class="flex items-center gap-2 bg-primary text-surface font-medium px-7 py-3.5 rounded-lg hover:bg-primary-dim transition-all hover:shadow-[0_0_24px_rgba(79,255,176,0.3)] group">
+            Try Live Demo
+            <span class="material-symbols-outlined text-[18px] group-hover:translate-x-0.5 transition-transform">arrow_forward</span>
+          </button>
+          <button onclick="document.getElementById('how-it-works').scrollIntoView({behavior:'smooth'})" class="flex items-center gap-2 border border-outline-dim hover:border-primary/40 text-on-surface-dim hover:text-on-surface px-7 py-3.5 rounded-lg transition-all text-sm">
+            <span class="material-symbols-outlined text-[18px]">play_circle</span>
+            See How It Works
+          </button>
+        </div>
+        <!-- Trust badges -->
+        <div class="h-cta mt-10 flex items-center gap-6 flex-wrap">
+          <div class="flex items-center gap-1.5 text-on-surface-dim text-xs">
+            <span class="material-symbols-outlined text-[16px] text-primary" style="font-variation-settings:'FILL' 1">verified</span>
+            HIPAA Compliant
+          </div>
+          <div class="flex items-center gap-1.5 text-on-surface-dim text-xs">
+            <span class="material-symbols-outlined text-[16px] text-primary" style="font-variation-settings:'FILL' 1">lock</span>
+            End-to-end Encrypted
+          </div>
+          <div class="flex items-center gap-1.5 text-on-surface-dim text-xs">
+            <span class="material-symbols-outlined text-[16px] text-primary" style="font-variation-settings:'FILL' 1">science</span>
+            FDA-Cleared AI Models
+          </div>
+        </div>
+      </div>
+
+      <!-- Visual panel -->
+      <div class="h-visual relative">
+        <!-- Main dashboard card -->
+        <div class="glass rounded-2xl p-6 glow-border relative overflow-hidden">
+          <!-- ECG line -->
+          <svg viewBox="0 0 400 60" class="w-full mb-4" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path class="ecg-line" d="M0 30 L60 30 L75 30 L85 5 L95 55 L105 30 L115 30 L160 30 L175 30 L185 10 L195 50 L205 30 L215 30 L260 30 L275 30 L285 8 L295 52 L305 30 L315 30 L400 30" stroke="#4fffb0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <!-- Vitals row -->
+          <div class="grid grid-cols-3 gap-3 mb-5">
+            <div class="bg-surface-high rounded-xl p-3 text-center">
+              <p class="text-on-surface-dim text-[10px] uppercase tracking-wider mb-1">Heart Rate</p>
+              <p class="font-headline text-2xl text-primary font-bold">72</p>
+              <p class="text-on-surface-dim text-[10px]">bpm</p>
+            </div>
+            <div class="bg-surface-high rounded-xl p-3 text-center">
+              <p class="text-on-surface-dim text-[10px] uppercase tracking-wider mb-1">SpO₂</p>
+              <p class="font-headline text-2xl text-secondary font-bold">98%</p>
+              <p class="text-on-surface-dim text-[10px]">oxygen</p>
+            </div>
+            <div class="bg-surface-high rounded-xl p-3 text-center">
+              <p class="text-on-surface-dim text-[10px] uppercase tracking-wider mb-1">BP</p>
+              <p class="font-headline text-2xl text-accent font-bold">118/76</p>
+              <p class="text-on-surface-dim text-[10px]">mmHg</p>
+            </div>
+          </div>
+          <!-- AI insight -->
+          <div class="bg-primary/5 border border-primary/15 rounded-xl p-4 flex gap-3 items-start">
+            <div class="w-8 h-8 rounded-lg bg-primary/15 flex-shrink-0 flex items-center justify-center mt-0.5">
+              <span class="material-symbols-outlined text-primary text-[16px]" style="font-variation-settings:'FILL' 1">psychology</span>
+            </div>
+            <div>
+              <p class="text-[11px] text-primary font-medium mb-1 uppercase tracking-wider">AI Insight</p>
+              <p class="text-sm text-on-surface leading-snug">All vitals within normal range. Detected mild tachycardia trend post-exercise. <span class="text-primary">Recommend monitoring for 24h.</span></p>
+            </div>
+          </div>
+          <!-- Patients row -->
+          <div class="mt-4 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <div class="flex -space-x-2">
+                <div class="w-7 h-7 rounded-full bg-primary/20 border border-surface-card flex items-center justify-center text-[10px] text-primary font-bold">A</div>
+                <div class="w-7 h-7 rounded-full bg-secondary/20 border border-surface-card flex items-center justify-center text-[10px] text-secondary font-bold">R</div>
+                <div class="w-7 h-7 rounded-full bg-accent/20 border border-surface-card flex items-center justify-center text-[10px] text-accent font-bold">M</div>
+              </div>
+              <span class="text-on-surface-dim text-xs">+14 active patients</span>
+            </div>
+            <span class="pill border-primary/20 text-primary bg-primary/5">Live ●</span>
+          </div>
+        </div>
+
+        <!-- Floating cards -->
+        <div class="absolute -top-6 -right-4 glass rounded-xl p-3.5 glow-border w-44" style="animation: fadeIn 1s 1.1s ease forwards; opacity:0;">
+          <p class="text-[10px] text-on-surface-dim uppercase tracking-wider mb-2">Diagnosis Accuracy</p>
+          <p class="font-headline text-3xl font-bold text-primary">97.4<span class="text-base">%</span></p>
+          <div class="h-1 bg-surface-high rounded-full mt-2 overflow-hidden">
+            <div class="h-full bg-primary rounded-full" style="width:97.4%"></div>
+          </div>
+        </div>
+
+        <div class="absolute -bottom-6 -left-4 glass rounded-xl p-3.5 glow-border w-44" style="animation: fadeIn 1s 1.3s ease forwards; opacity:0;">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="material-symbols-outlined text-warn text-[16px]" style="font-variation-settings:'FILL' 1">warning</span>
+            <p class="text-[10px] text-warn uppercase tracking-wider">Alert</p>
+          </div>
+          <p class="text-sm text-on-surface">Patient #2847 — Abnormal glucose spike detected</p>
+          <p class="text-[10px] text-on-surface-dim mt-1">2 min ago</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scroll cue -->
+    <div class="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 animate-pulse-slow">
+      <span class="text-on-surface-dim text-xs tracking-widest uppercase">Scroll</span>
+      <span class="material-symbols-outlined text-on-surface-dim text-[18px]">keyboard_arrow_down</span>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════
+       TICKER
+  ═══════════════════════════════════ -->
+  <div class="ticker-wrap py-4 border-y border-outline-dim/30 bg-surface-container">
+    <div class="ticker-track">
+      <span class="text-on-surface-dim text-sm flex items-center gap-3"><span class="text-primary">✦</span> AI Symptom Checker</span>
+      <span class="text-on-surface-dim text-sm flex items-center gap-3"><span class="text-secondary">✦</span> Real-time Patient Monitoring</span>
+      <span class="text-on-surface-dim text-sm flex items-center gap-3"><span class="text-accent">✦</span> Predictive Disease Modeling</span>
+      <span class="text-on-surface-dim text-sm flex items-center gap-3"><span class="text-primary">✦</span> Drug Interaction Analysis</span>
+      <span class="text-on-surface-dim text-sm flex items-center gap-3"><span class="text-secondary">✦</span> Clinical Decision Support</span>
+      <span class="text-on-surface-dim text-sm flex items-center gap-3"><span class="text-accent">✦</span> EHR Integration</span>
+      <span class="text-on-surface-dim text-sm flex items-center gap-3"><span class="text-primary">✦</span> Radiology AI Assistant</span>
+      <span class="text-on-surface-dim text-sm flex items-center gap-3"><span class="text-secondary">✦</span> Mental Health Screening</span>
+      <!-- duplicate for seamless loop -->
+      <span class="text-on-surface-dim text-sm flex items-center gap-3"><span class="text-primary">✦</span> AI Symptom Checker</span>
+      <span class="text-on-surface-dim text-sm flex items-center gap-3"><span class="text-secondary">✦</span> Real-time Patient Monitoring</span>
+      <span class="text-on-surface-dim text-sm flex items-center gap-3"><span class="text-accent">✦</span> Predictive Disease Modeling</span>
+      <span class="text-on-surface-dim text-sm flex items-center gap-3"><span class="text-primary">✦</span> Drug Interaction Analysis</span>
+      <span class="text-on-surface-dim text-sm flex items-center gap-3"><span class="text-secondary">✦</span> Clinical Decision Support</span>
+      <span class="text-on-surface-dim text-sm flex items-center gap-3"><span class="text-accent">✦</span> EHR Integration</span>
+      <span class="text-on-surface-dim text-sm flex items-center gap-3"><span class="text-primary">✦</span> Radiology AI Assistant</span>
+      <span class="text-on-surface-dim text-sm flex items-center gap-3"><span class="text-secondary">✦</span> Mental Health Screening</span>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════
+       FEATURES
+  ═══════════════════════════════════ -->
+  <section id="features" class="py-28 max-w-7xl mx-auto px-6 md:px-8">
+    <div class="text-center mb-16 reveal">
+      <div class="pill border-primary/25 text-primary bg-primary/5 inline-flex mb-4">Core Features</div>
+      <h2 class="font-headline text-4xl md:text-5xl font-bold mb-4">Everything your clinic needs,<br/><span class="text-primary">powered by AI</span></h2>
+      <p class="text-on-surface-dim max-w-xl mx-auto">From intelligent triage to automated reporting, MedAI handles the complexity so your team can focus on care.</p>
+    </div>
+
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+      <!-- Feature 1 -->
+      <div class="reveal glass glow-border rounded-2xl p-6 group hover:bg-surface-high/40 transition-colors">
+        <div class="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+          <span class="material-symbols-outlined text-primary" style="font-variation-settings:'FILL' 1">psychology</span>
+        </div>
+        <h3 class="font-headline text-lg font-semibold mb-2">AI Diagnosis Engine</h3>
+        <p class="text-on-surface-dim text-sm leading-relaxed">Analyzes symptoms, history and lab results to generate differential diagnoses with confidence scores — in under 3 seconds.</p>
+        <div class="mt-4 flex items-center gap-2 text-primary text-xs font-medium">
+          <span>97.4% accuracy</span>
+          <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+        </div>
+      </div>
+
+      <!-- Feature 2 -->
+      <div class="reveal glass glow-border rounded-2xl p-6 group hover:bg-surface-high/40 transition-colors" style="transition-delay:.08s">
+        <div class="w-12 h-12 rounded-xl bg-secondary/10 border border-secondary/20 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+          <span class="material-symbols-outlined text-secondary" style="font-variation-settings:'FILL' 1">monitor_heart</span>
+        </div>
+        <h3 class="font-headline text-lg font-semibold mb-2">Real-Time Monitoring</h3>
+        <p class="text-on-surface-dim text-sm leading-relaxed">Continuous IoT-integrated vitals tracking with instant alerts for anomalies, arrhythmia detection and deterioration prediction.</p>
+        <div class="mt-4 flex items-center gap-2 text-secondary text-xs font-medium">
+          <span>500+ devices supported</span>
+          <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+        </div>
+      </div>
+
+      <!-- Feature 3 -->
+      <div class="reveal glass glow-border rounded-2xl p-6 group hover:bg-surface-high/40 transition-colors" style="transition-delay:.16s">
+        <div class="w-12 h-12 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+          <span class="material-symbols-outlined text-accent" style="font-variation-settings:'FILL' 1">biotech</span>
+        </div>
+        <h3 class="font-headline text-lg font-semibold mb-2">Lab & Imaging AI</h3>
+        <p class="text-on-surface-dim text-sm leading-relaxed">Reads X-rays, MRIs and CT scans using vision models. Flags abnormalities and pre-fills radiologist reports automatically.</p>
+        <div class="mt-4 flex items-center gap-2 text-accent text-xs font-medium">
+          <span>12 modalities supported</span>
+          <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+        </div>
+      </div>
+
+      <!-- Feature 4 -->
+      <div class="reveal glass glow-border rounded-2xl p-6 group hover:bg-surface-high/40 transition-colors" style="transition-delay:.04s">
+        <div class="w-12 h-12 rounded-xl bg-warn/10 border border-warn/20 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+          <span class="material-symbols-outlined text-warn" style="font-variation-settings:'FILL' 1">medication</span>
+        </div>
+        <h3 class="font-headline text-lg font-semibold mb-2">Drug Interaction Check</h3>
+        <p class="text-on-surface-dim text-sm leading-relaxed">Cross-references prescriptions against the patient's full medication list and genetic profile to flag dangerous interactions.</p>
+        <div class="mt-4 flex items-center gap-2 text-warn text-xs font-medium">
+          <span>FDA drug database</span>
+          <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+        </div>
+      </div>
+
+      <!-- Feature 5 -->
+      <div class="reveal glass glow-border rounded-2xl p-6 group hover:bg-surface-high/40 transition-colors" style="transition-delay:.12s">
+        <div class="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+          <span class="material-symbols-outlined text-primary" style="font-variation-settings:'FILL' 1">spa</span>
+        </div>
+        <h3 class="font-headline text-lg font-semibold mb-2">Mental Health Screening</h3>
+        <p class="text-on-surface-dim text-sm leading-relaxed">NLP-powered assessments for depression, anxiety and PTSD. Integrates PHQ-9, GAD-7 and custom clinical protocols seamlessly.</p>
+        <div class="mt-4 flex items-center gap-2 text-primary text-xs font-medium">
+          <span>10 validated scales</span>
+          <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+        </div>
+      </div>
+
+      <!-- Feature 6 -->
+      <div class="reveal glass glow-border rounded-2xl p-6 group hover:bg-surface-high/40 transition-colors" style="transition-delay:.2s">
+        <div class="w-12 h-12 rounded-xl bg-secondary/10 border border-secondary/20 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+          <span class="material-symbols-outlined text-secondary" style="font-variation-settings:'FILL' 1">summarize</span>
+        </div>
+        <h3 class="font-headline text-lg font-semibold mb-2">Auto Clinical Notes</h3>
+        <p class="text-on-surface-dim text-sm leading-relaxed">Dictate naturally and let AI generate SOAP notes, discharge summaries and insurance pre-authorization letters instantly.</p>
+        <div class="mt-4 flex items-center gap-2 text-secondary text-xs font-medium">
+          <span>Saves 2hrs/day per doctor</span>
+          <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════
+       HOW IT WORKS
+  ═══════════════════════════════════ -->
+  <section id="how-it-works" class="py-28 bg-surface-container border-y border-outline-dim/30">
+    <div class="max-w-7xl mx-auto px-6 md:px-8">
+      <div class="text-center mb-16 reveal">
+        <div class="pill border-secondary/25 text-secondary bg-secondary/5 inline-flex mb-4">Workflow</div>
+        <h2 class="font-headline text-4xl md:text-5xl font-bold mb-4">From patient intake<br/><span class="text-secondary">to care plan in minutes</span></h2>
+      </div>
+
+      <div class="relative">
+        <!-- Connecting line -->
+        <div class="hidden lg:block absolute top-14 left-[12.5%] right-[12.5%] h-px bg-gradient-to-r from-primary/20 via-secondary/40 to-accent/20"></div>
+
+        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <!-- Step 1 -->
+          <div class="reveal flex flex-col items-center text-center">
+            <div class="w-28 h-28 rounded-2xl glass glow-border flex flex-col items-center justify-center mb-5 relative">
+              <span class="absolute -top-2.5 -right-2.5 w-6 h-6 rounded-full bg-primary text-surface text-[11px] font-headline font-bold flex items-center justify-center">1</span>
+              <span class="material-symbols-outlined text-primary text-[36px]" style="font-variation-settings:'FILL' 1">person_add</span>
+            </div>
+            <h3 class="font-headline font-semibold text-lg mb-2">Patient Intake</h3>
+            <p class="text-on-surface-dim text-sm">Patient completes a digital symptom form. AI instantly triages urgency and routes to the right specialist.</p>
+          </div>
+
+          <!-- Step 2 -->
+          <div class="reveal flex flex-col items-center text-center" style="transition-delay:.1s">
+            <div class="w-28 h-28 rounded-2xl glass glow-border flex flex-col items-center justify-center mb-5 relative">
+              <span class="absolute -top-2.5 -right-2.5 w-6 h-6 rounded-full bg-secondary text-surface text-[11px] font-headline font-bold flex items-center justify-center">2</span>
+              <span class="material-symbols-outlined text-secondary text-[36px]" style="font-variation-settings:'FILL' 1">analytics</span>
+            </div>
+            <h3 class="font-headline font-semibold text-lg mb-2">AI Analysis</h3>
+            <p class="text-on-surface-dim text-sm">Models cross-reference symptoms, vitals and medical history to generate a ranked differential diagnosis list.</p>
+          </div>
+
+          <!-- Step 3 -->
+          <div class="reveal flex flex-col items-center text-center" style="transition-delay:.2s">
+            <div class="w-28 h-28 rounded-2xl glass glow-border flex flex-col items-center justify-center mb-5 relative">
+              <span class="absolute -top-2.5 -right-2.5 w-6 h-6 rounded-full bg-accent text-surface text-[11px] font-headline font-bold flex items-center justify-center">3</span>
+              <span class="material-symbols-outlined text-accent text-[36px]" style="font-variation-settings:'FILL' 1">stethoscope</span>
+            </div>
+            <h3 class="font-headline font-semibold text-lg mb-2">Clinician Review</h3>
+            <p class="text-on-surface-dim text-sm">The physician reviews AI recommendations in a clean dashboard, approves or adjusts, and the system learns from feedback.</p>
+          </div>
+
+          <!-- Step 4 -->
+          <div class="reveal flex flex-col items-center text-center" style="transition-delay:.3s">
+            <div class="w-28 h-28 rounded-2xl glass glow-border flex flex-col items-center justify-center mb-5 relative">
+              <span class="absolute -top-2.5 -right-2.5 w-6 h-6 rounded-full bg-primary text-surface text-[11px] font-headline font-bold flex items-center justify-center">4</span>
+              <span class="material-symbols-outlined text-primary text-[36px]" style="font-variation-settings:'FILL' 1">description</span>
+            </div>
+            <h3 class="font-headline font-semibold text-lg mb-2">Care Plan & Notes</h3>
+            <p class="text-on-surface-dim text-sm">Personalized care plan generated, clinical notes auto-drafted, prescriptions checked for interactions, and patient notified.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════
+       LIVE DEMO / AI CHAT
+  ═══════════════════════════════════ -->
+  <section id="demo" class="py-28 max-w-7xl mx-auto px-6 md:px-8">
+    <div class="grid lg:grid-cols-2 gap-16 items-start">
+      <div class="reveal">
+        <div class="pill border-primary/25 text-primary bg-primary/5 inline-flex mb-5">Live Demo</div>
+        <h2 class="font-headline text-4xl md:text-5xl font-bold mb-5">Try the AI<br/><span class="text-primary">Symptom Assistant</span></h2>
+        <p class="text-on-surface-dim mb-8 leading-relaxed">Describe your symptoms in natural language. Our AI will analyze them, ask follow-up questions and generate a preliminary assessment — just like a real clinical intake.</p>
+        <div class="space-y-4">
+          <div class="flex items-start gap-3">
+            <div class="w-6 h-6 rounded-full bg-primary/15 flex-shrink-0 flex items-center justify-center mt-0.5">
+              <span class="material-symbols-outlined text-primary text-[14px]" style="font-variation-settings:'FILL' 1">check</span>
+            </div>
+            <p class="text-on-surface-dim text-sm">Powered by a large language model fine-tuned on 50M+ clinical records</p>
+          </div>
+          <div class="flex items-start gap-3">
+            <div class="w-6 h-6 rounded-full bg-primary/15 flex-shrink-0 flex items-center justify-center mt-0.5">
+              <span class="material-symbols-outlined text-primary text-[14px]" style="font-variation-settings:'FILL' 1">check</span>
+            </div>
+            <p class="text-on-surface-dim text-sm">Not a substitute for professional diagnosis — educational demo only</p>
+          </div>
+          <div class="flex items-start gap-3">
+            <div class="w-6 h-6 rounded-full bg-primary/15 flex-shrink-0 flex items-center justify-center mt-0.5">
+              <span class="material-symbols-outlined text-primary text-[14px]" style="font-variation-settings:'FILL' 1">check</span>
+            </div>
+            <p class="text-on-surface-dim text-sm">No data stored — conversations are ephemeral and private</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chat interface -->
+      <div class="reveal glass glow-border rounded-2xl overflow-hidden flex flex-col h-[520px]" style="transition-delay:.15s">
+        <!-- Chat header -->
+        <div class="flex items-center gap-3 p-4 border-b border-outline-dim/40 bg-surface-high/50">
+          <div class="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center flex-shrink-0">
+            <span class="material-symbols-outlined text-primary text-[18px]" style="font-variation-settings:'FILL' 1">smart_toy</span>
+          </div>
+          <div>
+            <p class="text-sm font-semibold font-headline">MedAI Assistant</p>
+            <p class="text-[11px] text-on-surface-dim flex items-center gap-1"><span class="w-1.5 h-1.5 bg-primary rounded-full animate-pulse-slow"></span> Online — Demo Mode</p>
+          </div>
+        </div>
+
+        <!-- Messages -->
+        <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3">
+          <div class="flex gap-2.5">
+            <div class="w-7 h-7 rounded-lg bg-primary/15 flex-shrink-0 flex items-center justify-center">
+              <span class="material-symbols-outlined text-primary text-[14px]" style="font-variation-settings:'FILL' 1">smart_toy</span>
+            </div>
+            <div class="glass rounded-xl rounded-tl-sm p-3 max-w-[80%]">
+              <p class="text-sm">Hello! I'm MedAI, your clinical AI assistant. Please describe your symptoms and I'll help assess them. <span class="text-primary font-medium">Remember: this is a demo — always consult a real doctor.</span></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Input -->
+        <div class="p-4 border-t border-outline-dim/40 bg-surface-high/30">
+          <div class="flex gap-2.5">
+            <input id="chat-input" type="text" placeholder="Describe your symptoms…" class="flex-1 bg-surface-container border border-outline-dim rounded-lg px-4 py-2.5 text-sm text-on-surface placeholder-on-surface-dim/50 focus:outline-none focus:border-primary/50 transition-colors" />
+            <button id="chat-send" class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center hover:bg-primary-dim transition-colors flex-shrink-0">
+              <span class="material-symbols-outlined text-surface text-[18px]">send</span>
+            </button>
+          </div>
+          <p class="text-[10px] text-on-surface-dim mt-2 text-center">For demonstration only. Not medical advice.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════
+       DASHBOARD PREVIEW
+  ═══════════════════════════════════ -->
+  <section id="dashboard" class="py-28 bg-surface-container border-y border-outline-dim/30">
+    <div class="max-w-7xl mx-auto px-6 md:px-8">
+      <div class="text-center mb-14 reveal">
+        <div class="pill border-accent/25 text-accent bg-accent/5 inline-flex mb-4">Dashboard</div>
+        <h2 class="font-headline text-4xl md:text-5xl font-bold mb-4">Clinical command center</h2>
+        <p class="text-on-surface-dim max-w-lg mx-auto">One unified view of your entire patient population, AI alerts, and team activity.</p>
+      </div>
+
+      <div class="reveal glass glow-border rounded-2xl overflow-hidden">
+        <!-- Top bar -->
+        <div class="bg-surface-high px-6 py-4 border-b border-outline-dim/40 flex items-center justify-between flex-wrap gap-4">
+          <div class="flex items-center gap-6">
+            <span class="font-headline text-sm font-semibold">Ward A Overview</span>
+            <div class="flex items-center gap-1.5 text-xs text-on-surface-dim">
+              <span class="w-1.5 h-1.5 bg-primary rounded-full animate-pulse-slow"></span>
+              Live data
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <button class="pill border-outline-dim text-on-surface-dim text-xs hover:border-primary/30 hover:text-on-surface transition-all">Today</button>
+            <button class="pill border-outline-dim text-on-surface-dim text-xs hover:border-primary/30 hover:text-on-surface transition-all">7 days</button>
+            <button class="pill border-primary/25 text-primary text-xs bg-primary/5">30 days</button>
+          </div>
+        </div>
+
+        <div class="p-6 grid lg:grid-cols-3 gap-6">
+          <!-- Stats -->
+          <div class="lg:col-span-1 grid grid-cols-2 gap-4">
+            <div class="bg-surface-high rounded-xl p-4">
+              <p class="text-on-surface-dim text-[10px] uppercase tracking-wider mb-2">Total Patients</p>
+              <p class="font-headline text-3xl font-bold text-on-surface stat-num" data-target="248">0</p>
+              <p class="text-primary text-xs mt-1">↑ 12 today</p>
+            </div>
+            <div class="bg-surface-high rounded-xl p-4">
+              <p class="text-on-surface-dim text-[10px] uppercase tracking-wider mb-2">AI Alerts</p>
+              <p class="font-headline text-3xl font-bold text-warn stat-num" data-target="7">0</p>
+              <p class="text-on-surface-dim text-xs mt-1">3 critical</p>
+            </div>
+            <div class="bg-surface-high rounded-xl p-4">
+              <p class="text-on-surface-dim text-[10px] uppercase tracking-wider mb-2">Avg. Diagnosis</p>
+              <p class="font-headline text-3xl font-bold text-secondary stat-num" data-target="94">0</p>
+              <p class="text-secondary text-xs mt-1">% confidence</p>
+            </div>
+            <div class="bg-surface-high rounded-xl p-4">
+              <p class="text-on-surface-dim text-[10px] uppercase tracking-wider mb-2">Notes Saved</p>
+              <p class="font-headline text-3xl font-bold text-accent stat-num" data-target="1842">0</p>
+              <p class="text-on-surface-dim text-xs mt-1">hrs this month</p>
+            </div>
+          </div>
+
+          <!-- Patient list -->
+          <div class="lg:col-span-2 space-y-2.5">
+            <p class="text-xs text-on-surface-dim uppercase tracking-wider mb-3">Recent Patients — AI Status</p>
+            <!-- Row 1 -->
+            <div class="flex items-center justify-between bg-surface-high/60 rounded-xl px-4 py-3 hover:bg-surface-high transition-colors">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center font-headline text-sm text-primary font-bold">A</div>
+                <div>
+                  <p class="text-sm font-medium">Ananya Sharma</p>
+                  <p class="text-[11px] text-on-surface-dim">Cardiology · Rm 204</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="pill border-primary/25 bg-primary/5 text-primary text-[10px]">Stable</span>
+                <span class="text-on-surface-dim text-xs">HR 74</span>
+              </div>
+            </div>
+            <!-- Row 2 -->
+            <div class="flex items-center justify-between bg-surface-high/60 rounded-xl px-4 py-3 hover:bg-surface-high transition-colors">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-warn/15 flex items-center justify-center font-headline text-sm text-warn font-bold">R</div>
+                <div>
+                  <p class="text-sm font-medium">Rajan Mehta</p>
+                  <p class="text-[11px] text-on-surface-dim">Endocrinology · Rm 108</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="pill border-warn/25 bg-warn/5 text-warn text-[10px]">Alert</span>
+                <span class="text-on-surface-dim text-xs">Glucose ↑</span>
+              </div>
+            </div>
+            <!-- Row 3 -->
+            <div class="flex items-center justify-between bg-surface-high/60 rounded-xl px-4 py-3 hover:bg-surface-high transition-colors">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-secondary/15 flex items-center justify-center font-headline text-sm text-secondary font-bold">M</div>
+                <div>
+                  <p class="text-sm font-medium">Meena Iyer</p>
+                  <p class="text-[11px] text-on-surface-dim">Pulmonology · Rm 312</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="pill border-secondary/25 bg-secondary/5 text-secondary text-[10px]">Monitoring</span>
+                <span class="text-on-surface-dim text-xs">SpO₂ 94</span>
+              </div>
+            </div>
+            <!-- Row 4 -->
+            <div class="flex items-center justify-between bg-surface-high/60 rounded-xl px-4 py-3 hover:bg-surface-high transition-colors">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-danger/15 flex items-center justify-center font-headline text-sm text-danger font-bold">K</div>
+                <div>
+                  <p class="text-sm font-medium">Karan Verma</p>
+                  <p class="text-[11px] text-on-surface-dim">ICU · Rm 002</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="pill border-danger/25 bg-danger/5 text-danger text-[10px]">Critical</span>
+                <span class="text-on-surface-dim text-xs">BP 90/60</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════
+       STATS
+  ═══════════════════════════════════ -->
+  <section id="stats" class="py-28 max-w-7xl mx-auto px-6 md:px-8">
+    <div class="text-center mb-16 reveal">
+      <div class="pill border-primary/25 text-primary bg-primary/5 inline-flex mb-4">Impact</div>
+      <h2 class="font-headline text-4xl md:text-5xl font-bold">Numbers that matter</h2>
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+      <div class="reveal glass glow-border rounded-2xl p-7 text-center">
+        <p class="font-headline text-5xl font-bold text-primary stat-num" data-target="97">0<span class="text-2xl">%</span></p>
+        <p class="text-on-surface-dim text-sm mt-2">Diagnostic Accuracy</p>
+      </div>
+      <div class="reveal glass glow-border rounded-2xl p-7 text-center" style="transition-delay:.08s">
+        <p class="font-headline text-5xl font-bold text-secondary stat-num" data-target="2">0<span class="text-2xl">hr</span></p>
+        <p class="text-on-surface-dim text-sm mt-2">Saved Per Doctor / Day</p>
+      </div>
+      <div class="reveal glass glow-border rounded-2xl p-7 text-center" style="transition-delay:.16s">
+        <p class="font-headline text-5xl font-bold text-accent stat-num" data-target="340">0<span class="text-2xl">k+</span></p>
+        <p class="text-on-surface-dim text-sm mt-2">Patients Monitored</p>
+      </div>
+      <div class="reveal glass glow-border rounded-2xl p-7 text-center" style="transition-delay:.24s">
+        <p class="font-headline text-5xl font-bold text-warn stat-num" data-target="60">0<span class="text-2xl">%</span></p>
+        <p class="text-on-surface-dim text-sm mt-2">Fewer Adverse Events</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════
+       PRICING
+  ═══════════════════════════════════ -->
+  <section id="pricing" class="py-28 bg-surface-container border-y border-outline-dim/30">
+    <div class="max-w-7xl mx-auto px-6 md:px-8">
+      <div class="text-center mb-14 reveal">
+        <div class="pill border-secondary/25 text-secondary bg-secondary/5 inline-flex mb-4">Pricing</div>
+        <h2 class="font-headline text-4xl md:text-5xl font-bold mb-4">Plans for every care team</h2>
+      </div>
+      <div class="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+        <!-- Starter -->
+        <div class="reveal glass glow-border rounded-2xl p-7 flex flex-col">
+          <p class="font-headline text-lg font-semibold mb-1">Starter</p>
+          <p class="text-on-surface-dim text-sm mb-6">For individual practitioners</p>
+          <p class="font-headline text-4xl font-bold mb-1">₹4,999<span class="text-lg text-on-surface-dim font-normal">/mo</span></p>
+          <p class="text-on-surface-dim text-xs mb-7">Per provider, billed monthly</p>
+          <ul class="space-y-3 flex-1 mb-8">
+            <li class="flex items-center gap-2 text-sm"><span class="material-symbols-outlined text-primary text-[16px]" style="font-variation-settings:'FILL' 1">check_circle</span>AI Symptom Checker</li>
+            <li class="flex items-center gap-2 text-sm"><span class="material-symbols-outlined text-primary text-[16px]" style="font-variation-settings:'FILL' 1">check_circle</span>50 AI diagnoses/month</li>
+            <li class="flex items-center gap-2 text-sm"><span class="material-symbols-outlined text-primary text-[16px]" style="font-variation-settings:'FILL' 1">check_circle</span>Auto clinical notes</li>
+            <li class="flex items-center gap-2 text-sm text-on-surface-dim"><span class="material-symbols-outlined text-outline-dim text-[16px]">cancel</span>Real-time monitoring</li>
+          </ul>
+          <button class="w-full py-3 rounded-lg border border-outline-dim hover:border-primary/40 text-sm hover:text-on-surface text-on-surface-dim transition-all">Get Started</button>
+        </div>
+
+        <!-- Pro (highlighted) -->
+        <div class="reveal glass rounded-2xl p-7 flex flex-col relative border border-primary/30" style="box-shadow:0 0 40px rgba(79,255,176,0.08); transition-delay:.1s">
+          <div class="absolute -top-3 left-1/2 -translate-x-1/2 pill border-primary/30 text-primary bg-primary/10 text-xs">Most Popular</div>
+          <p class="font-headline text-lg font-semibold mb-1">Pro</p>
+          <p class="text-on-surface-dim text-sm mb-6">For small clinics & hospitals</p>
+          <p class="font-headline text-4xl font-bold mb-1">₹19,999<span class="text-lg text-on-surface-dim font-normal">/mo</span></p>
+          <p class="text-on-surface-dim text-xs mb-7">Per facility, up to 10 providers</p>
+          <ul class="space-y-3 flex-1 mb-8">
+            <li class="flex items-center gap-2 text-sm"><span class="material-symbols-outlined text-primary text-[16px]" style="font-variation-settings:'FILL' 1">check_circle</span>Everything in Starter</li>
+            <li class="flex items-center gap-2 text-sm"><span class="material-symbols-outlined text-primary text-[16px]" style="font-variation-settings:'FILL' 1">check_circle</span>Unlimited AI diagnoses</li>
+            <li class="flex items-center gap-2 text-sm"><span class="material-symbols-outlined text-primary text-[16px]" style="font-variation-settings:'FILL' 1">check_circle</span>Real-time monitoring</li>
+            <li class="flex items-center gap-2 text-sm"><span class="material-symbols-outlined text-primary text-[16px]" style="font-variation-settings:'FILL' 1">check_circle</span>Drug interaction checks</li>
+          </ul>
+          <button class="w-full py-3 rounded-lg bg-primary text-surface font-medium text-sm hover:bg-primary-dim transition-colors hover:shadow-[0_0_20px_rgba(79,255,176,0.25)]">Get Started</button>
+        </div>
+
+        <!-- Enterprise -->
+        <div class="reveal glass glow-border rounded-2xl p-7 flex flex-col" style="transition-delay:.2s">
+          <p class="font-headline text-lg font-semibold mb-1">Enterprise</p>
+          <p class="text-on-surface-dim text-sm mb-6">For large health networks</p>
+          <p class="font-headline text-4xl font-bold mb-1">Custom</p>
+          <p class="text-on-surface-dim text-xs mb-7">Contact us for volume pricing</p>
+          <ul class="space-y-3 flex-1 mb-8">
+            <li class="flex items-center gap-2 text-sm"><span class="material-symbols-outlined text-primary text-[16px]" style="font-variation-settings:'FILL' 1">check_circle</span>Everything in Pro</li>
+            <li class="flex items-center gap-2 text-sm"><span class="material-symbols-outlined text-primary text-[16px]" style="font-variation-settings:'FILL' 1">check_circle</span>EHR & HIS integration</li>
+            <li class="flex items-center gap-2 text-sm"><span class="material-symbols-outlined text-primary text-[16px]" style="font-variation-settings:'FILL' 1">check_circle</span>Custom AI model training</li>
+            <li class="flex items-center gap-2 text-sm"><span class="material-symbols-outlined text-primary text-[16px]" style="font-variation-settings:'FILL' 1">check_circle</span>Dedicated support SLA</li>
+          </ul>
+          <button class="w-full py-3 rounded-lg border border-outline-dim hover:border-primary/40 text-sm hover:text-on-surface text-on-surface-dim transition-all">Contact Sales</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════
+       NEWSLETTER
+  ═══════════════════════════════════ -->
+  <section id="newsletter" class="py-28 max-w-7xl mx-auto px-6 md:px-8">
+    <div class="reveal glass glow-border rounded-2xl p-10 md:p-16 text-center relative overflow-hidden">
+      <div class="absolute inset-0 dot-grid opacity-40 pointer-events-none"></div>
+      <div class="relative z-10">
+        <div class="pill border-primary/25 text-primary bg-primary/5 inline-flex mb-5">Stay Updated</div>
+        <h2 class="font-headline text-4xl md:text-5xl font-bold mb-4">The future of healthcare<br/><span class="text-primary">is in your inbox</span></h2>
+        <p class="text-on-surface-dim mb-8 max-w-md mx-auto">Get weekly briefs on AI in medicine, clinical AI research, and MedAI product updates.</p>
+        <form id="subscribe-form" class="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+          <input id="email-input" type="email" placeholder="your@hospital.com" required class="flex-1 bg-surface-container border border-outline-dim rounded-lg px-5 py-3 text-sm text-on-surface placeholder-on-surface-dim/50 focus:outline-none focus:border-primary/50 transition-colors" />
+          <button type="submit" class="bg-primary text-surface font-medium px-7 py-3 rounded-lg hover:bg-primary-dim transition-colors text-sm whitespace-nowrap">Subscribe Free</button>
+        </form>
+        <p class="text-on-surface-dim text-xs mt-4">No spam. Unsubscribe anytime. HIPAA-aligned communications.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════
+       FOOTER
+  ═══════════════════════════════════ -->
+  <footer id="footer" class="bg-surface-container border-t border-outline-dim/30">
+    <div class="max-w-7xl mx-auto px-6 md:px-8 py-16 grid sm:grid-cols-2 lg:grid-cols-4 gap-10">
+      <!-- Brand -->
+      <div class="sm:col-span-2 lg:col-span-1">
+        <div class="flex items-center gap-2.5 mb-4">
+          <div class="w-8 h-8 rounded-lg bg-primary/10 border border-primary/30 flex items-center justify-center">
+            <span class="material-symbols-outlined text-primary text-[18px]" style="font-variation-settings:'FILL' 1">ecg_heart</span>
+          </div>
+          <span class="font-headline font-bold text-lg">Med<span class="text-primary">AI</span></span>
+        </div>
+        <p class="text-on-surface-dim text-sm leading-relaxed mb-4">Intelligent healthcare infrastructure for modern medical teams.</p>
+        <p class="text-on-surface-dim text-xs">HIPAA · ISO 27001 · CE Marked · FDA Registered</p>
+      </div>
+      <!-- Product -->
+      <div class="flex flex-col gap-4">
+        <h4 class="text-on-surface text-xs uppercase tracking-widest font-medium">Product</h4>
+        <ul class="space-y-2.5">
+          <li><a href="#features"   class="text-on-surface-dim hover:text-primary text-sm transition-colors">Features</a></li>
+          <li><a href="#dashboard"  class="text-on-surface-dim hover:text-primary text-sm transition-colors">Dashboard</a></li>
+          <li><a href="#pricing"    class="text-on-surface-dim hover:text-primary text-sm transition-colors">Pricing</a></li>
+          <li><a href="#"           class="text-on-surface-dim hover:text-primary text-sm transition-colors">API Docs</a></li>
+        </ul>
+      </div>
+      <!-- Company -->
+      <div class="flex flex-col gap-4">
+        <h4 class="text-on-surface text-xs uppercase tracking-widest font-medium">Company</h4>
+        <ul class="space-y-2.5">
+          <li><a href="#" class="text-on-surface-dim hover:text-primary text-sm transition-colors">About</a></li>
+          <li><a href="#" class="text-on-surface-dim hover:text-primary text-sm transition-colors">Careers</a></li>
+          <li><a href="#" class="text-on-surface-dim hover:text-primary text-sm transition-colors">Research</a></li>
+          <li><a href="#" class="text-on-surface-dim hover:text-primary text-sm transition-colors">Blog</a></li>
+        </ul>
+      </div>
+      <!-- Legal -->
+      <div class="flex flex-col gap-4">
+        <h4 class="text-on-surface text-xs uppercase tracking-widest font-medium">Legal</h4>
+        <ul class="space-y-2.5">
+          <li><a href="#" class="text-on-surface-dim hover:text-primary text-sm transition-colors">Privacy Policy</a></li>
+          <li><a href="#" class="text-on-surface-dim hover:text-primary text-sm transition-colors">Terms of Service</a></li>
+          <li><a href="#" class="text-on-surface-dim hover:text-primary text-sm transition-colors">HIPAA Notice</a></li>
+          <li><a href="#" class="text-on-surface-dim hover:text-primary text-sm transition-colors">Cookie Policy</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="max-w-7xl mx-auto px-6 md:px-8 py-5 border-t border-outline-dim/20 flex flex-col md:flex-row items-center justify-between gap-3">
+      <p class="text-on-surface-dim text-[11px] uppercase tracking-widest">© 2025 MedAI Technologies. All rights reserved.</p>
+      <p class="text-outline-dim text-[11px]">Built for better patient outcomes. Powered by intelligence.</p>
+    </div>
+  </footer>
+
+  <!-- Toast -->
+  <div id="toast" role="status" aria-live="polite">
+    <span class="material-symbols-outlined text-primary text-base" style="font-variation-settings:'FILL' 1">check_circle</span>
+    Subscribed! Welcome to MedAI Digest.
+  </div>
+
+  <!-- ═══════════════════════════════════
+       JAVASCRIPT
+  ═══════════════════════════════════ -->
+  <script>
+    /* ── Cursor ── */
+    const cursor = document.getElementById('cursor');
+    const ring   = document.getElementById('cursor-ring');
+    let mx=0,my=0,rx=0,ry=0;
+    document.addEventListener('mousemove', e=>{
+      mx=e.clientX; my=e.clientY;
+      cursor.style.left=mx+'px'; cursor.style.top=my+'px';
+    });
+    (function ar(){ rx+=(mx-rx)*.12; ry+=(my-ry)*.12;
+      ring.style.left=rx+'px'; ring.style.top=ry+'px';
+      requestAnimationFrame(ar);
+    })();
+    document.querySelectorAll('a,button,input').forEach(el=>{
+      el.addEventListener('mouseenter',()=>{ cursor.style.width='18px'; cursor.style.height='18px'; ring.style.width='50px'; ring.style.height='50px'; ring.style.borderColor='rgba(79,255,176,0.6)'; });
+      el.addEventListener('mouseleave',()=>{ cursor.style.width='10px'; cursor.style.height='10px'; ring.style.width='34px'; ring.style.height='34px'; ring.style.borderColor='rgba(79,255,176,0.35)'; });
+    });
+
+    /* ── Navbar scroll ── */
+    const navbar = document.getElementById('navbar');
+    window.addEventListener('scroll',()=>{
+      if(window.scrollY>40) navbar.classList.add('bg-[#0a0d14]/90','backdrop-blur-xl','border-b','border-[#2a3148]/30','shadow-lg');
+      else navbar.classList.remove('bg-[#0a0d14]/90','backdrop-blur-xl','border-b','border-[#2a3148]/30','shadow-lg');
+    });
+
+    /* ── Mobile menu ── */
+    const menuBtn=document.getElementById('menu-btn');
+    const mobileMenu=document.getElementById('mobile-menu');
+    const menuIcon=document.getElementById('menu-icon');
+    let menuOpen=false;
+    menuBtn.addEventListener('click',()=>{
+      menuOpen=!menuOpen;
+      mobileMenu.classList.toggle('open',menuOpen);
+      menuIcon.textContent=menuOpen?'close':'menu';
+    });
+    mobileMenu.querySelectorAll('a,button').forEach(el=>el.addEventListener('click',()=>{ menuOpen=false; mobileMenu.classList.remove('open'); menuIcon.textContent='menu'; }));
+
+    /* ── Reveal ── */
+    const ro = new IntersectionObserver(entries=>entries.forEach(e=>{ if(e.isIntersecting) e.target.classList.add('visible'); }),{threshold:.1});
+    document.querySelectorAll('.reveal').forEach(el=>ro.observe(el));
+
+    /* ── Stat counter ── */
+    const so = new IntersectionObserver(entries=>entries.forEach(e=>{
+      if(e.isIntersecting && !e.target.dataset.counted){
+        e.target.dataset.counted=true;
+        const target=parseInt(e.target.dataset.target);
+        const suffix=e.target.querySelector('span') ? e.target.querySelector('span').textContent : '';
+        let start=0; const dur=1400;
+        const step=ts=>{ if(!start)start=ts; const p=Math.min((ts-start)/dur,1); const ease=1-Math.pow(1-p,3);
+          e.target.childNodes[0].textContent=Math.floor(ease*target);
+          if(p<1) requestAnimationFrame(step); else e.target.childNodes[0].textContent=target; };
+        requestAnimationFrame(step);
+      }
+    }),{threshold:.5});
+    document.querySelectorAll('[data-target]').forEach(el=>so.observe(el));
+
+    /* ── Subscribe form ── */
+    const form=document.getElementById('subscribe-form');
+    const toast=document.getElementById('toast');
+    form.addEventListener('submit',e=>{
+      e.preventDefault();
+      const inp=document.getElementById('email-input');
+      if(!inp.value||!inp.validity.valid){ inp.style.borderColor='#f87171'; inp.focus(); setTimeout(()=>inp.style.borderColor='',2000); return; }
+      toast.classList.add('show'); inp.value='';
+      setTimeout(()=>toast.classList.remove('show'),4500);
+    });
+
+    /* ── Chat ── */
+    const chatInput=document.getElementById('chat-input');
+    const chatSend=document.getElementById('chat-send');
+    const chatMessages=document.getElementById('chat-messages');
+
+    const aiResponses = {
+      default: "Thank you for sharing that. Can you tell me more about when these symptoms started and their severity on a scale of 1–10?",
+      headache: "Headaches can have many causes — tension, migraine, sinusitis, or rarely something more serious. Are you experiencing any visual disturbances, nausea, or neck stiffness alongside?",
+      fever: "A fever suggests your immune system is active. Key questions: How high (°C/°F)? Duration? Any chills, sweating, or rash? Have you traveled recently?",
+      chest: "Chest symptoms require careful attention. Is the pain sharp, pressure-like, or burning? Does it radiate to arm/jaw? Any shortness of breath? If severe, please seek emergency care immediately.",
+      cough: "A persistent cough could be respiratory, allergic, or post-nasal. Is it dry or productive? Any blood? Duration? Associated fever? Any known allergen exposure?",
+      fatigue: "Fatigue is one of the most common complaints. We'd look at sleep quality, thyroid function, blood count, mental health, and nutrition as starting points. How long has this been going on?",
+    };
+
+    function getResponse(msg) {
+      const m = msg.toLowerCase();
+      if(m.includes('headache')||m.includes('head')) return aiResponses.headache;
+      if(m.includes('fever')||m.includes('temperature')) return aiResponses.fever;
+      if(m.includes('chest')||m.includes('heart')) return aiResponses.chest;
+      if(m.includes('cough')||m.includes('cold')) return aiResponses.cough;
+      if(m.includes('tired')||m.includes('fatigue')||m.includes('weak')) return aiResponses.fatigue;
+      return aiResponses.default;
+    }
+
+    function addMessage(text, isUser) {
+      const div = document.createElement('div');
+      div.className = `flex gap-2.5 ${isUser ? 'flex-row-reverse' : ''}`;
+      div.innerHTML = isUser
+        ? `<div class="bg-primary/15 border border-primary/20 rounded-xl rounded-tr-sm p-3 max-w-[80%]"><p class="text-sm">${text}</p></div>`
+        : `<div class="w-7 h-7 rounded-lg bg-primary/15 flex-shrink-0 flex items-center justify-center"><span class="material-symbols-outlined text-primary text-[14px]" style="font-variation-settings:'FILL' 1">smart_toy</span></div><div class="glass rounded-xl rounded-tl-sm p-3 max-w-[80%]"><p class="text-sm">${text}</p></div>`;
+      chatMessages.appendChild(div);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function handleSend() {
+      const msg = chatInput.value.trim();
+      if(!msg) return;
+      addMessage(msg, true);
+      chatInput.value='';
+      setTimeout(()=>{
+        addMessage(getResponse(msg), false);
+      }, 900);
+    }
+
+    chatSend.addEventListener('click', handleSend);
+    chatInput.addEventListener('keydown', e=>{ if(e.key==='Enter') handleSend(); });
+
+    /* ── Active nav ── */
+    const sections=document.querySelectorAll('section[id]');
+    const navLinks=document.querySelectorAll('nav a[href^="#"]');
+    const no = new IntersectionObserver(entries=>{
+      entries.forEach(e=>{
+        if(e.isIntersecting){
+          navLinks.forEach(l=>{ l.classList.remove('text-primary'); l.classList.add('text-on-surface-dim');
+            if(l.getAttribute('href')==='#'+e.target.id) l.classList.add('text-primary');
+          });
+        }
+      });
+    },{ rootMargin:'-50% 0px -50% 0px' });
+    sections.forEach(s=>no.observe(s));
+  </script>
+</body>
+</html>
