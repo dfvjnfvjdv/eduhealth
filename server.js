@@ -16,7 +16,7 @@ const PORT = process.env.PORT || 3000;
 app.use(helmet());           // security headers
 app.use(cors());             // allow cross-origin requests
 app.use(express.json());     // parse JSON bodies
-app.use(express.static('public')); // serve frontend from /public
+app.use(express.static(path.join(__dirname, 'public'))); // serve frontend from /public
 
 // Rate limiter — max 100 requests per 15 min per IP
 const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100 });
