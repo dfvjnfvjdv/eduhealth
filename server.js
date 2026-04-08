@@ -13,7 +13,7 @@ const app  = express();
 const PORT = process.env.PORT || 3000;
 
 // ── Middleware ──────────────────────────────────────────────
-app.use(helmet());           // security headers
+app.use(helmet({ contentSecurityPolicy: false }));           // security headers
 app.use(cors());             // allow cross-origin requests
 app.use(express.json());     // parse JSON bodies
 app.use(express.static(path.join(__dirname, 'public'))); // serve frontend from /public
